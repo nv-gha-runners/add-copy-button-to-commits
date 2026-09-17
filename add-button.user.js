@@ -89,9 +89,9 @@
     }
   }
 
-  // GitHub renders the pull request timeline client-side, so the commit links
-  // usually don't exist yet when this script first runs, and Turbo navigations
-  // replace them afterwards. Watch for both instead of scanning only once.
+  // Clicking into a pull request from a list is a Turbo navigation: GitHub swaps
+  // the timeline in without reloading the page, so the script never re-runs and
+  // a one-time scan finds nothing. Re-scan as the DOM changes instead.
   let pending = false;
   new MutationObserver(() => {
     if (pending) return;
