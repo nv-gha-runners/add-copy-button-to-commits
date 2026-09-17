@@ -1,12 +1,14 @@
 # add-copy-button-to-commits
 
-This repository contains the source code for a [Tampermonkey](https://www.tampermonkey.net/) script that adds a "copy" button next to commit SHAs on GitHub pull request pages. The screenshot below shows an example of this functionality:
+This repository contains the source code for a [Tampermonkey](https://www.tampermonkey.net/) script that adds a "copy" button next to commit SHAs on GitHub pull request pages. The button copies the **full 40-character SHA**, which is what `copy-pr-bot` requires in `/ok to test` comments. The screenshot below shows an example of this functionality:
 
 ![](./imgs/capture.png)
 
 ## Motivation
 
 The motivation for this script is to make it easier for developers to copy commit SHAs from pull request pages on GitHub.
+
+Pull request pages only display the abbreviated 7-character SHA, but `copy-pr-bot` requires the full 40-character SHA in `/ok to test` comments. This script copies the full SHA regardless of what is displayed.
 
 Without this script, copying SHAs from GitHub's pull request web pages can be a bit tricky. It requires clicking in the exact right location to highlight text. It also requires pasting the SHA as plain-text with `CTRL+SHIFT+V` vs. `CTRL+V` (otherwise it pastes the contents as a commit URL, which generally isn't the intended behavior). This script fixes both of those quirks and can be easily used in Chrome, Firefox, Safari, Edge, and Opera as described in the [Usage](#usage) section below.
 

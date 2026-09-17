@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Add Copy Button to PR Commits
 // @namespace    http://tampermonkey.net/
-// @version      1
-// @description  Adds a copy button to pull-request commit SHAs on GitHub
+// @version      2
+// @description  Adds a copy button that copies the full 40-character SHA of pull-request commits on GitHub
 // @author       AJ Schmidt
 // @match        https://github.com/*/*/pull/*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=tampermonkey.net
@@ -36,11 +36,15 @@
     ).reduce((acc, el) => {
       const re = new RegExp("^[0-9a-f]{7}$");
       if (!el.innerText.trim().match(re)) return acc;
-      return [...acc, el];
+      // The link text is the abbreviated SHA, which copy-pr-bot no longer accepts.
+      // The full 40-character SHA is only available from the commit href.
+      const fullSha = (el.getAttribute("href") || "").match(/[0-9a-f]{40}/);
+      if (!fullSha) return acc;
+      return [...acc, [el, fullSha[0]]];
     }, []);
   }
 
-  function addCopyIconButton(targetElement) {
+  function addCopyIconButton(targetElement, sha) {
     if (!targetElement || !(targetElement instanceof HTMLElement)) {
       console.error("Invalid element passed to addCopyIconButton");
       return;
@@ -71,9 +75,8 @@
 
     // Click event
     button.addEventListener("click", () => {
-      const textToCopy = targetElement.innerText;
       navigator.clipboard
-        .writeText(textToCopy)
+        .writeText(sha)
         .then(() => {
           button.innerHTML = checkSVG;
           setTimeout(() => {
@@ -89,7 +92,7 @@
     targetElement.insertAdjacentElement("afterend", button);
   }
 
-  for (const el of findShaElements()) {
-    addCopyIconButton(el);
+  for (const [el, sha] of findShaElements()) {
+    addCopyIconButton(el, sha);
   }
 })();
