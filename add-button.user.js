@@ -111,7 +111,9 @@
       pending = false;
       addCopyIconButtons();
     });
-  }).observe(document.body, { childList: true, subtree: true });
+    // The document itself, because neither body nor documentElement is
+    // guaranteed to exist yet depending on when the script is injected.
+  }).observe(document, { childList: true, subtree: true });
 
   addCopyIconButtons();
 })();
