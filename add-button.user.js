@@ -30,27 +30,10 @@
 (function () {
   "use strict";
 
-  function findShaElements() {
-    return Array.from(
-      document.querySelectorAll(".TimelineItem-body .Link--secondary")
-    ).reduce((acc, el) => {
-      if (el.dataset.copyButtonAdded) return acc;
-      const re = new RegExp("^[0-9a-f]{7}$");
-      if (!el.innerText.trim().match(re)) return acc;
-      // The link text is the abbreviated SHA, which copy-pr-bot no longer accepts.
-      // The full 40-character SHA is only available from the commit href.
-      const fullSha = (el.getAttribute("href") || "").match(/[0-9a-f]{40}/);
-      if (!fullSha) return acc;
-      return [...acc, [el, fullSha[0]]];
-    }, []);
-  }
+  const SHORT_SHA = /^[0-9a-f]{7}$/;
+  const FULL_SHA = /[0-9a-f]{40}/;
 
   function addCopyIconButton(targetElement, sha) {
-    if (!targetElement || !(targetElement instanceof HTMLElement)) {
-      console.error("Invalid element passed to addCopyIconButton");
-      return;
-    }
-
     // SVGs for copy and check icons
     const copySVG = `
   <svg xmlns="http://www.w3.org/2000/svg" height="16" width="16" fill="currentColor" viewBox="0 0 16 16">
@@ -95,8 +78,14 @@
   }
 
   function addCopyIconButtons() {
-    for (const [el, sha] of findShaElements()) {
-      addCopyIconButton(el, sha);
+    for (const el of document.querySelectorAll(
+      ".TimelineItem-body .Link--secondary"
+    )) {
+      if (el.dataset.copyButtonAdded) continue;
+      if (!SHORT_SHA.test(el.innerText.trim())) continue;
+      // The link text is only the abbreviated SHA; the full one is in the href.
+      const sha = (el.getAttribute("href") || "").match(FULL_SHA);
+      if (sha) addCopyIconButton(el, sha[0]);
     }
   }
 
