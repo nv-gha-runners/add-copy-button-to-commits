@@ -34,6 +34,7 @@
     return Array.from(
       document.querySelectorAll(".TimelineItem-body .Link--secondary")
     ).reduce((acc, el) => {
+      if (el.dataset.copyButtonAdded) return acc;
       const re = new RegExp("^[0-9a-f]{7}$");
       if (!el.innerText.trim().match(re)) return acc;
       // The link text is the abbreviated SHA, which copy-pr-bot no longer accepts.
@@ -89,10 +90,28 @@
     });
 
     // Insert button after element
+    targetElement.dataset.copyButtonAdded = "true";
     targetElement.insertAdjacentElement("afterend", button);
   }
 
-  for (const [el, sha] of findShaElements()) {
-    addCopyIconButton(el, sha);
+  function addCopyIconButtons() {
+    for (const [el, sha] of findShaElements()) {
+      addCopyIconButton(el, sha);
+    }
   }
+
+  // GitHub renders the pull request timeline client-side, so the commit links
+  // usually don't exist yet when this script first runs, and Turbo navigations
+  // replace them afterwards. Watch for both instead of scanning only once.
+  let pending = false;
+  new MutationObserver(() => {
+    if (pending) return;
+    pending = true;
+    requestAnimationFrame(() => {
+      pending = false;
+      addCopyIconButtons();
+    });
+  }).observe(document.body, { childList: true, subtree: true });
+
+  addCopyIconButtons();
 })();
