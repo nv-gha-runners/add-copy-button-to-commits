@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Add Copy Button to PR Commits
 // @namespace    http://tampermonkey.net/
-// @version      1
-// @description  Adds a copy button to pull-request commit SHAs on GitHub
+// @version      2
+// @description  Adds a copy button that copies the full 40-character SHA of pull-request commits on GitHub
 // @author       AJ Schmidt
 // @match        https://github.com/*/*/pull/*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=tampermonkey.net
@@ -30,22 +30,10 @@
 (function () {
   "use strict";
 
-  function findShaElements() {
-    return Array.from(
-      document.querySelectorAll(".TimelineItem-body .Link--secondary")
-    ).reduce((acc, el) => {
-      const re = new RegExp("^[0-9a-f]{7}$");
-      if (!el.innerText.trim().match(re)) return acc;
-      return [...acc, el];
-    }, []);
-  }
+  const SHORT_SHA = /^[0-9a-f]{7}$/;
+  const FULL_SHA = /[0-9a-f]{40}/;
 
-  function addCopyIconButton(targetElement) {
-    if (!targetElement || !(targetElement instanceof HTMLElement)) {
-      console.error("Invalid element passed to addCopyIconButton");
-      return;
-    }
-
+  function addCopyIconButton(targetElement, sha) {
     // SVGs for copy and check icons
     const copySVG = `
   <svg xmlns="http://www.w3.org/2000/svg" height="16" width="16" fill="currentColor" viewBox="0 0 16 16">
@@ -71,9 +59,8 @@
 
     // Click event
     button.addEventListener("click", () => {
-      const textToCopy = targetElement.innerText;
       navigator.clipboard
-        .writeText(textToCopy)
+        .writeText(sha)
         .then(() => {
           button.innerHTML = checkSVG;
           setTimeout(() => {
@@ -86,10 +73,36 @@
     });
 
     // Insert button after element
+    targetElement.dataset.copyButtonAdded = "true";
     targetElement.insertAdjacentElement("afterend", button);
   }
 
-  for (const el of findShaElements()) {
-    addCopyIconButton(el);
+  function addCopyIconButtons() {
+    for (const el of document.querySelectorAll(
+      ".TimelineItem-body .Link--secondary"
+    )) {
+      if (el.dataset.copyButtonAdded) continue;
+      if (!SHORT_SHA.test(el.innerText.trim())) continue;
+      // The link text is only the abbreviated SHA; the full one is in the href.
+      const sha = (el.getAttribute("href") || "").match(FULL_SHA);
+      if (sha) addCopyIconButton(el, sha[0]);
+    }
   }
+
+  // Clicking into a pull request from a list is a Turbo navigation: GitHub swaps
+  // the timeline in without reloading the page, so the script never re-runs and
+  // a one-time scan finds nothing. Re-scan as the DOM changes instead.
+  let pending = false;
+  new MutationObserver(() => {
+    if (pending) return;
+    pending = true;
+    requestAnimationFrame(() => {
+      pending = false;
+      addCopyIconButtons();
+    });
+    // The document itself, because neither body nor documentElement is
+    // guaranteed to exist yet depending on when the script is injected.
+  }).observe(document, { childList: true, subtree: true });
+
+  addCopyIconButtons();
 })();
